@@ -9,9 +9,9 @@ ___
 ## 0. 效果展示
 
 **微调前**
-![微调前](image-2.png)
+![微调前](../attachments/image-2.png)
 **微调后**
-![微调后](image-1.png)
+![微调后](../attachments/image-1.png)
 
 ## 1. 项目概述
 
@@ -388,7 +388,7 @@ python bailian_prelabel.py --sleep 1.5
 
 **文件**：`review_prelabel_web.py`
 
-![标注审核界面](image-4.png)
+![标注审核界面](../attachments/image-4.png)
 
 ### 7.2 设计目的
 

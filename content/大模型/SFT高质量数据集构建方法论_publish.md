@@ -34,7 +34,7 @@
 
 SFT 数据集构建并非一条线性流水线——**多模态数据**和**纯文本数据**的最佳构建路径截然不同：
 
-![SFT数据构建双路径架构](../attachments/sft-architecture.png)
+![SFT数据构建双路径架构](https://raw.githubusercontent.com/Liwx1014/PicBed/main/%E5%A4%A7%E6%A8%A1%E5%9E%8B/diagrams/sft-architecture.png)
 
 ---
 
@@ -56,7 +56,7 @@ DDAS 的核心是「聚类发现长尾，差异化采样纠正」。但在实际
 
 因此，我们将 DDAS 拆解为两步互补的流水线：
 
-![DDAS两步互补策略](../attachments/ddas-coverage.png)
+![DDAS两步互补策略](https://raw.githubusercontent.com/Liwx1014/PicBed/main/%E5%A4%A7%E6%A8%A1%E5%9E%8B/diagrams/ddas-coverage.png)
 
 > **两步互补**：Step 1 解决「这个类别样本太少」→ 差异化增广拉平类间不均衡；Step 2 解决「这个类别里，这种模式太少」→ 聚类发现类内长尾。增广后类内样本充足，聚类才能发现真正的困难模式（如强反光、遮挡等边角场景）。
 
@@ -91,7 +91,7 @@ Step 2 聚类（类内长尾发现）
 
 #### 2.1 流水线总览
 
-![CMCV预标注流水线](../attachments/cmcv-workflow.png)
+![CMCV预标注流水线](https://raw.githubusercontent.com/Liwx1014/PicBed/main/%E5%A4%A7%E6%A8%A1%E5%9E%8B/diagrams/cmcv-workflow.png)
 
 
 ---
@@ -154,7 +154,7 @@ Step 2 聚类（类内长尾发现）
 
 本项目是多模态视觉分类任务，Judge 的核心判据是**图像本身**而非文本 reasoning。因此直接采用原图 + 参考图并排对比的方式裁决：
 
-![Judge-and-Refine流程](../attachments/judge-refine.png)
+![Judge-and-Refine流程](https://raw.githubusercontent.com/Liwx1014/PicBed/main/%E5%A4%A7%E6%A8%A1%E5%9E%8B/diagrams/judge-refine.png)
 
 **具体做法**：从 Easy 样本（三模型共识）中检索三个候选类别的典型参考图，与原图并排输入 Judge：
 
@@ -258,7 +258,7 @@ $$
 
 完整的 **Self-Guided** 流程，让模型自己完成"预训练 → 评估 → 精选重训"的闭环，全程无需人工标注：
 
-![IFD三阶段流程](../attachments/ifd-three-stage.png)
+![IFD三阶段流程](https://raw.githubusercontent.com/Liwx1014/PicBed/main/%E5%A4%A7%E6%A8%A1%E5%9E%8B/diagrams/ifd-three-stage.png)
 
 
 #### 4.2.1 阶段一：简要预训练（Learning from Brief Experience）
