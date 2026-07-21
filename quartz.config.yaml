@@ -7,7 +7,7 @@ configuration:
   analytics:
     provider: plausible
   locale: zh-CN
-  baseUrl: liwx1014.github.io/Liwx_Vault
+  baseUrl: liwx1014.github.io/quartz
   ignorePatterns:
     - private
     - templates
