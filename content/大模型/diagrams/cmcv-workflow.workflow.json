@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "CMCV 预标注流水线（阶段二）",
+    "subtitle": "以目标模型(4B)为锚点的多模型协同标注 + 难度分级",
+    "output": "cmcv-workflow.html"
+  },
+  "lanes": [
+    { "id": "inference", "label": "多模型推理" },
+    { "id": "grading", "label": "CMCV 分级路由" },
+    { "id": "judge", "label": "Judge-and-Refine（仅Hard）", "variant": "exception" }
+  ],
+  "phases": [
+    { "id": "p1", "label": "独立推理", "fromCol": 0, "toCol": 1 },
+    { "id": "p2", "label": "锚点分级 + 路由", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "p3", "label": "裁决入库", "fromCol": 4, "toCol": 5 }
+  ],
+  "groups": [],
+  "mainPath": ["input", "models"],
+  "nodes": [
+    { "id": "input", "lane": "inference", "col": 0, "type": "external", "label": "图片输入", "sublabel": "标签未知" },
+    { "id": "models", "lane": "inference", "col": 3, "type": "cloud", "label": "三模型并行推理", "sublabel": "4B + Gemini + Max", "tag": "统一Prompt" },
+    { "id": "grade", "lane": "grading", "col": 1, "type": "backend", "label": "CMCV 分级", "sublabel": "以4B为锚点", "tag": "Easy/Med/Hard" },
+    { "id": "store", "lane": "grading", "col": 3, "type": "database", "label": "Easy+Medium", "sublabel": "直接入库", "tag": "Medium高权重" },
+    { "id": "output", "lane": "grading", "col": 5, "type": "database", "label": "人工审核", "sublabel": "定向修正 ~5%" },
+    { "id": "visual", "lane": "judge", "col": 1, "type": "security", "label": "视觉对比裁决", "sublabel": "Plus + 参考图", "tag": "独立于CMCV池" },
+    { "id": "blind", "lane": "judge", "col": 3, "type": "backend", "label": "盲猜验证", "sublabel": "reasoning质量检查" },
+    { "id": "human", "lane": "judge", "col": 5, "type": "external", "label": "路由人工", "sublabel": "~5%全量数据" }
+  ],
+  "edges": [
+    { "from": "input", "to": "models", "variant": "emphasis" },
+    { "from": "models", "to": "grade", "label": "三模型输出比对", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "drop", "labelAt": [220, 175] },
+    { "from": "grade", "to": "store", "label": "Easy/Medium", "variant": "emphasis" },
+    { "from": "grade", "to": "visual", "label": "Hard", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "drop", "labelAt": [134, 295] },
+    { "from": "visual", "to": "blind", "label": "Judge能判断", "variant": "default" },
+    { "from": "visual", "to": "human", "label": "仍无法判断", "variant": "security", "fromSide": "bottom", "toSide": "bottom", "route": "bottom-channel", "labelAt": [365, 430] },
+    { "from": "blind", "to": "store", "label": "验证通过", "variant": "emphasis", "fromSide": "top", "toSide": "bottom", "route": "drop", "labelAt": [346, 260] },
+    { "from": "blind", "to": "human", "label": "验证失败", "variant": "security", "labelAt": [530, 350] },
+    { "from": "store", "to": "output", "variant": "emphasis" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "锚点式分级规则",
+      "items": [
+        "只看4B：4B和任一人一致 → Easy",
+        "4B孤立但两个外人一致 → Medium（最高训练价值）",
+        "三人全散 → Hard → 进入Judge视觉裁决"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Judge设计要点",
+      "items": [
+        "Judge必须独立于CMCV池（避免确认偏差）",
+        "多模态任务：原图+参考图并排对比裁决",
+        "盲猜验证确保reasoning有区分力"
+      ]
+    }
+  ]
+}

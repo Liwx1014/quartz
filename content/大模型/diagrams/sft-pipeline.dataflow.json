@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "SFT 高质量数据集构建五阶段流水线",
+    "subtitle": "覆盖度 → 信息量+精度 → 信息量 → 精度 → 质量",
+    "output": "sft-pipeline.html",
+    "viewBox": [1080, 620]
+  },
+  "stages": [
+    { "label": "阶段一：数据治理" },
+    { "label": "阶段二：预标注" },
+    { "label": "阶段三：IFD筛选" },
+    { "label": "阶段四：人工审核" },
+    { "label": "阶段五：格式验证" }
+  ],
+  "nodes": [
+    { "id": "raw", "type": "external", "label": "原始数据", "sublabel": "1642张 / 31类", "stage": 0, "row": 1, "tag": "类间不均衡" },
+    { "id": "augment", "type": "backend", "label": "差异化增广", "sublabel": "augment_v5.py", "stage": 0, "row": 0, "tag": "类间均衡" },
+    { "id": "cluster", "type": "backend", "label": "语义聚类", "sublabel": "CLIP + K-Means", "stage": 0, "row": 2, "tag": "类内长尾" },
+    { "id": "cmcv", "type": "cloud", "label": "CMCV 三模型", "sublabel": "4B+Gemini+Max", "stage": 1, "row": 0, "tag": "锚点分级" },
+    { "id": "judge", "type": "security", "label": "Judge-and-Refine", "sublabel": "Plus 视觉对比", "stage": 1, "row": 2, "tag": "仅Hard" },
+    { "id": "ifd", "type": "backend", "label": "IFD 评分", "sublabel": "指令跟随难度", "stage": 2, "row": 1, "tag": "Cherry Data" },
+    { "id": "human", "type": "security", "label": "专家审核", "sublabel": "侧车文件模式", "stage": 3, "row": 1, "tag": "精度保障" },
+    { "id": "output", "type": "database", "label": "SFT 数据集", "sublabel": "ShareGPT格式", "stage": 4, "row": 1, "tag": "LLaMA-Factory" }
+  ],
+  "flows": [
+    { "from": "raw", "to": "augment", "label": "规范化后增广", "classification": "3254张", "variant": "emphasis", "fromSide": "top", "toSide": "bottom", "route": "straight", "labelAt": [100, 195] },
+    { "from": "raw", "to": "cluster", "label": "增广后聚类", "classification": "类内分析", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "route": "straight", "labelAt": [100, 325] },
+    { "from": "augment", "to": "cmcv", "label": "均衡数据", "classification": "28/31类达100张", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "from": "cmcv", "to": "judge", "label": "Hard样本", "classification": "~20%", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "straight", "labelAt": [315, 260] },
+    { "from": "cmcv", "to": "ifd", "label": "Easy+Medium", "classification": "自动标注", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "from": "judge", "to": "ifd", "label": "修正后入库", "classification": "~15%", "variant": "default", "fromSide": "right", "toSide": "left" },
+    { "from": "judge", "to": "human", "label": "无法收敛", "classification": "~5%", "variant": "security", "fromSide": "right", "toSide": "left" },
+    { "from": "ifd", "to": "human", "label": "低置信样本", "classification": "定向审核", "variant": "default", "fromSide": "right", "toSide": "left" },
+    { "from": "ifd", "to": "output", "label": "高置信样本", "classification": "直接入库", "variant": "emphasis", "fromSide": "right", "toSide": "left", "labelAt": [795, 220] },
+    { "from": "human", "to": "output", "label": "审核修正后", "classification": "精度保障", "variant": "emphasis", "fromSide": "right", "toSide": "left" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "核心设计",
+      "items": [
+        "阶段一：先增广做类间均衡，再聚类做类内长尾发现",
+        "阶段二：以4B为锚点的CMCV分级 + 独立Judge视觉裁决",
+        "Medium样本训练价值最高（4B的能力缺口）"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "质量保障",
+      "items": [
+        "Hard样本经Judge视觉对比修正，仍失败则路由人工",
+        "盲猜验证确保reasoning包含区分性信息",
+        "人工审核仅覆盖~5%全量数据"
+      ]
+    }
+  ]
+}

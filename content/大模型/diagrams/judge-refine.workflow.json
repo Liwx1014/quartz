@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Judge-and-Refine — 视觉对比裁决与置信度路由",
+    "subtitle": "Hard 样本 → Judge 视觉对比 → confidence 高低分流 → 入库 / 人工",
+    "output": "judge-refine.html"
+  },
+  "lanes": [
+    { "id": "judge_lane", "label": "Judge 视觉对比裁决" },
+    { "id": "route", "label": "置信度路由与入库" }
+  ],
+  "phases": [
+    { "id": "hard_in", "label": "Hard 入口", "fromCol": 0, "toCol": 0 },
+    { "id": "adjudicate", "label": "视觉对比裁决", "fromCol": 1, "toCol": 2 },
+    { "id": "confidence", "label": "置信度判断", "fromCol": 3, "toCol": 4 },
+    { "id": "done", "label": "最终落点", "fromCol": 5, "toCol": 5 }
+  ],
+  "mainPath": ["hard", "judge"],
+  "nodes": [
+    { "id": "hard", "lane": "judge_lane", "col": 0, "type": "external", "label": "Hard 样本", "sublabel": "4B ≠ MiniCPM-V ≠ Max", "width": 96 },
+    { "id": "judge", "lane": "judge_lane", "col": 2, "type": "cloud", "label": "Judge 视觉对比", "sublabel": "原图 + 三个候选类参考图并排", "tag": "Qwen3-VL-Plus", "width": 112 },
+    { "id": "store", "lane": "route", "col": 5, "type": "database", "label": "入库训练", "sublabel": "采纳 Judge 预测为标签" },
+    { "id": "human", "lane": "route", "col": 3, "type": "security", "label": "路由人工", "sublabel": "~5% 全量数据" }
+  ],
+  "edges": [
+    { "from": "hard", "to": "judge", "variant": "emphasis" },
+    { "from": "judge", "to": "store", "label": "confidence = high → 采纳", "variant": "emphasis", "fromSide": "bottom", "toSide": "right", "route": "drop", "labelAt": [390, 190] },
+    { "from": "judge", "to": "human", "label": "confidence = low", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "route": "drop", "labelAt": [366, 167] }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Judge-and-Refine 两阶段",
+      "items": [
+        "视觉对比：原图 vs 候选类参考图 → Judge 裁决",
+        "置信度路由：high → 采纳入库；low → 路由人工"
+      ]
+    }
+  ]
+}

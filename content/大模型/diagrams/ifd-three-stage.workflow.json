@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "IFD Self-Guided 三阶段数据筛选流程",
+    "subtitle": "简要预训练 → IFD 评分筛选 → 精选重训（仅 5%~10% 数据超越全量）",
+    "output": "ifd-three-stage.html"
+  },
+  "lanes": [
+    { "id": "data_lane", "label": "数据处理与筛选" },
+    { "id": "model_lane", "label": "模型训练与评估" }
+  ],
+  "phases": [
+    { "id": "p1", "label": "阶段一：简要预训练 (Brief Experience)", "fromCol": 0, "toCol": 2 },
+    { "id": "p2", "label": "阶段二：IFD 评分与筛选", "fromCol": 3, "toCol": 4 },
+    { "id": "p3", "label": "阶段三：精选重训", "fromCol": 5, "toCol": 5 }
+  ],
+  "mainPath": ["data_pool", "kmeans", "pretrain", "ifd"],
+  "nodes": [
+    { "id": "data_pool", "lane": "data_lane", "col": 0, "type": "database", "label": "指令数据池", "sublabel": "5~7 万条", "width": 88 },
+    { "id": "kmeans", "lane": "data_lane", "col": 1, "type": "backend", "label": "K-Means 采样", "sublabel": "100 簇 × 10 条", "width": 88, "tag": "1000 条" },
+    { "id": "pretrain", "lane": "model_lane", "col": 2, "type": "cloud", "label": "预训练模型", "sublabel": "仅 1 epoch", "width": 88, "tag": "pre-experienced" },
+    { "id": "ifd", "lane": "model_lane", "col": 4, "type": "backend", "label": "IFD 评分", "sublabel": "s(A|Q) / s(A)", "width": 92, "tag": "逐条计算" },
+    { "id": "cherry", "lane": "data_lane", "col": 3, "type": "database", "label": "Cherry Data", "sublabel": "剔除 IFD>1 · Top 5~10%", "width": 100 },
+    { "id": "final", "lane": "model_lane", "col": 5, "type": "cloud", "label": "最终模型", "sublabel": "仅用 Cherry Data 重训", "width": 96, "tag": "超越全量" }
+  ],
+  "edges": [
+    { "from": "data_pool", "to": "kmeans", "label": "全量数据", "variant": "emphasis", "labelAt": [154, 169] },
+    { "from": "kmeans", "to": "pretrain", "label": "送训", "variant": "emphasis", "fromSide": "top", "toSide": "top", "route": "drop", "labelDy": 20 },
+    { "from": "pretrain", "to": "ifd", "label": "计算 IFD", "variant": "emphasis" },
+    { "from": "ifd", "to": "cherry", "label": "高分样本", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "drop", "labelAt": [465, 163] },
+    { "from": "cherry", "to": "final", "label": "重训", "variant": "emphasis", "fromSide": "top", "toSide": "top", "route": "drop", "labelDy": -22 }
+  ],
+  "cards": []
+}

@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SFT 高质量数据集构建方法论",
+    "subtitle": "按数据模态分叉的双路径架构 — 多模态走 CM CV+人工审核，纯文本走 IFD",
+    "output": "sft-architecture.html"
+  },
+  "layout": {
+    "mode": "grid",
+    "cols": 8,
+    "origin": [40, 40],
+    "gapX": 30,
+    "gapY": 40,
+    "cellW": 120,
+    "cellH": 60
+  },
+  "components": [
+    { "id": "data", "type": "external", "label": "原始数据", "sublabel": "标签未知", "row": 2, "col": 0 },
+    { "id": "ddas", "type": "backend", "label": "数据治理", "sublabel": "DDAS 覆盖度", "row": 2, "col": 1, "tag": "阶段一" },
+    { "id": "cmcv", "type": "cloud", "label": "CMCV 预标注", "sublabel": "锚点分级+Judge", "row": 2, "col": 2, "tag": "阶段二" },
+    { "id": "human", "type": "security", "label": "人工审核", "sublabel": "定向修正 ~5%", "row": 2, "col": 3 },
+    { "id": "fmt_mm", "type": "database", "label": "格式转换", "sublabel": "ShareGPT格式", "row": 2, "col": 4 },
+    { "id": "output_mm", "type": "database", "label": "多模态SFT数据集", "sublabel": "Qwen3-VL训练就绪", "row": 2, "col": 5 },
+    { "id": "text_data", "type": "external", "label": "文本指令数据", "sublabel": "已有数据池", "row": 0, "col": 1 },
+    { "id": "ifd", "type": "backend", "label": "IFD 评分", "sublabel": "指令跟随难度", "row": 0, "col": 2, "tag": "核心手段" },
+    { "id": "cherry", "type": "backend", "label": "Cherry Data", "sublabel": "5~10%精选", "row": 0, "col": 3, "tag": "高信息量" },
+    { "id": "rest", "type": "backend", "label": "剩余数据", "sublabel": "丢弃或降权", "row": 0, "col": 4, "tag": "边际价值低" },
+    { "id": "output_text", "type": "database", "label": "文本SFT数据集", "sublabel": "高质量子集", "row": 0, "col": 5 }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "多模态数据集构建路径（本项目）", "wraps": ["ddas", "cmcv", "human", "fmt_mm", "output_mm"] },
+    { "kind": "region", "label": "纯文本数据集构建路径", "wraps": ["text_data", "ifd", "cherry", "rest", "output_text"] }
+  ],
+  "connections": [
+    { "from": "data", "to": "ddas", "variant": "emphasis" },
+    { "from": "ddas", "to": "cmcv", "variant": "emphasis" },
+    { "from": "cmcv", "to": "human", "variant": "emphasis" },
+    { "from": "human", "to": "fmt_mm", "variant": "emphasis" },
+    { "from": "fmt_mm", "to": "output_mm", "variant": "emphasis" },
+    { "from": "text_data", "to": "ifd", "variant": "emphasis" },
+    { "from": "ifd", "to": "cherry", "label": "高分", "variant": "emphasis", "fromSide": "top", "toSide": "top", "labelDy": -50 },
+    { "from": "ifd", "to": "rest", "label": "低分", "variant": "dashed", "fromSide": "top", "toSide": "top", "labelDy": -50 },
+    { "from": "cherry", "to": "output_text", "variant": "emphasis" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "多模态路径（本项目）", "items": ["DDAS 覆盖度治理 → 增广+聚类", "CMCV 三模型锚点分级预标注", "Judge-and-Refine 视觉裁决Hard样本", "人工审核定向修正弱类别"] },
+    { "dot": "emerald", "title": "纯文本路径", "items": ["IFD = 条件答案loss / 直接答案loss", "IFD > 1 的样本：指令与答案错位 → 剔除", "Top-K% 筛选高信息量 Cherry Data", "5~10% 数据即可超越全量训练"] },
+    { "dot": "rose", "title": "关键差异", "items": ["多模态标注成本高 → 需要自动化流水线+人工兜底", "文本标注成本低 → 核心是筛选而非标注", "IFD 不适用于多模态（需模型先有零样本能力）", "CMCV 不适用于纯文本（缺少异构多模型参照）"] }
+  ]
+}

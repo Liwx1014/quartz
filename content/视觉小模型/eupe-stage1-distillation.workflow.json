@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "EUPE Stage 1: 多教师知识蒸馏",
+    "subtitle": "三教师 (PEcore · PElang · DINOv3) → 1.9B 代理模型，统一多域表征",
+    "output": "eupe-stage1-distillation.html",
+    "viewBox": [1100, 800]
+  },
+  "lanes": [
+    { "id": "input", "label": "数据输入" },
+    { "id": "teachers", "label": "三教师 (全部冻结)" },
+    { "id": "student", "label": "代理模型 + Adapter" },
+    { "id": "loss", "label": "损失计算" },
+    { "id": "update", "label": "反向传播" }
+  ],
+  "phases": [
+    { "id": "p1", "label": "01 输入", "fromCol": 0, "toCol": 0 },
+    { "id": "p2", "label": "02 前向", "fromCol": 1, "toCol": 1, "variant": "emphasis" },
+    { "id": "p3", "label": "03 对齐", "fromCol": 3, "toCol": 3, "variant": "emphasis" },
+    { "id": "p4", "label": "04 蒸馏损失", "fromCol": 4, "toCol": 4, "variant": "security" },
+    { "id": "p5", "label": "05 反向更新", "fromCol": 5, "toCol": 5 }
+  ],
+  "groups": [
+    {
+      "id": "parallel_forward",
+      "label": "并行前向",
+      "lane": "teachers",
+      "fromCol": 1,
+      "toCol": 1,
+      "variant": "emphasis"
+    }
+  ],
+  "mainPath": ["img", "teachers_fwd", "norm", "loss", "update"],
+  "nodes": [
+    {
+      "id": "img",
+      "lane": "input",
+      "col": 0,
+      "type": "external",
+      "label": "输入图片",
+      "sublabel": "x · ImageNet 归一化",
+      "width": 96
+    },
+    {
+      "id": "teachers_fwd",
+      "lane": "teachers",
+      "col": 1,
+      "type": "cloud",
+      "label": "三教师并行前向",
+      "sublabel": "PEcore · PElang · DINOv3",
+      "tag": "全程冻结",
+      "width": 108
+    },
+    {
+      "id": "proxy_fwd",
+      "lane": "student",
+      "col": 1,
+      "type": "backend",
+      "label": "代理模型前向",
+      "sublabel": "1.9B ViT-G",
+      "tag": "4 register tokens",
+      "width": 108
+    },
+    {
+      "id": "norm",
+      "lane": "teachers",
+      "col": 3,
+      "type": "backend",
+      "label": "特征归一化",
+      "sublabel": "(x − μ) / σ",
+      "tag": "per-coord · 500 batch 预统计",
+      "width": 108
+    },
+    {
+      "id": "adapter",
+      "lane": "student",
+      "col": 3,
+      "type": "backend",
+      "label": "Adapter 头 ×3",
+      "sublabel": "两层 MLP · 独立参数",
+      "tag": "双三次插值对齐 patch 空间",
+      "width": 108
+    },
+    {
+      "id": "loss",
+      "lane": "loss",
+      "col": 4,
+      "type": "security",
+      "label": "蒸馏损失",
+      "sublabel": "Class: cos  ·  Patch: cos + SL1",
+      "tag": "L = L_PE + L_PL + L_DV",
+      "width": 108
+    },
+    {
+      "id": "update",
+      "lane": "update",
+      "col": 5,
+      "type": "external",
+      "label": "反向传播",
+      "sublabel": "更新代理 + Adapter",
+      "tag": "三教师保持冻结",
+      "width": 108
+    }
+  ],
+  "edges": [
+    {
+      "from": "img",
+      "to": "teachers_fwd",
+      "label": "x",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "bottom-channel",
+      "labelAt": [154, 300]
+    },
+    {
+      "from": "img",
+      "to": "proxy_fwd",
+      "label": "x",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "bottom-channel",
+      "labelAt": [154, 425]
+    },
+    {
+      "from": "teachers_fwd",
+      "to": "norm",
+      "label": "原始教师特征",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight",
+      "labelAt": [325, 235]
+    },
+    {
+      "from": "proxy_fwd",
+      "to": "adapter",
+      "label": "原始学生特征",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight",
+      "labelAt": [325, 359]
+    },
+    {
+      "from": "norm",
+      "to": "loss",
+      "label": "归一化教师特征",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "outside-right",
+      "labelAt": [692, 367]
+    },
+    {
+      "from": "adapter",
+      "to": "loss",
+      "label": "投影学生特征",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "outside-right",
+      "labelAt": [692, 429]
+    },
+    {
+      "from": "loss",
+      "to": "update",
+      "label": "∂L/∂θ",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "drop",
+      "bias": 0.5,
+      "labelAt": [562, 539]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "三教师配置",
+      "items": [
+        "PEcore-G (1.9B / 448²) — VLM、零样本分类",
+        "PElang-G (1.7B / 448²) — OCR 与语言能力",
+        "DINOv3-H+ (840M / 256²) — 密集预测",
+        "三教师全程冻结，不接收梯度"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Adapter 关键设计",
+      "items": [
+        "每个教师一个独立 Adapter (2 层 MLP)",
+        "把学生输出投影到对应教师特征空间",
+        "patch 空间前做 2D 双三次插值 (448 vs 256)",
+        "避免强求统一到公共空间的难题"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "损失组成",
+      "items": [
+        "Class token: 余弦相似度",
+        "Patch tokens: cos α=0.9 + Smooth L1 β=0.1",
+        "L_total = L_PEcore + L_PElang + L_DINOv3",
+        "反向传播只更新代理 + 全部 Adapter"
+      ]
+    }
+  ]
+}

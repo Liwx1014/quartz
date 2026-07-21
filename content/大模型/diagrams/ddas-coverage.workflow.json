@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "DDAS 覆盖度分析 — 两步互补策略",
+    "subtitle": "类间均衡（差异化增广）+ 类内长尾发现（语义聚类）→ 互补闭环",
+    "output": "ddas-coverage.html"
+  },
+  "lanes": [
+    { "id": "gov", "label": "数据治理与增广" },
+    { "id": "ana", "label": "语义聚类分析" }
+  ],
+  "phases": [
+    { "id": "step1", "label": "Step 1：类间均衡", "fromCol": 0, "toCol": 2 },
+    { "id": "step2", "label": "Step 2：类内长尾发现", "fromCol": 3, "toCol": 4 },
+    { "id": "loop", "label": "闭环反馈", "fromCol": 5, "toCol": 5 }
+  ],
+  "mainPath": ["raw", "augment", "cluster", "feedback"],
+  "nodes": [
+    { "id": "raw", "lane": "gov", "col": 0, "type": "external", "label": "原始数据", "sublabel": "1642张，类间极度不均衡", "width": 96 },
+    { "id": "augment", "lane": "gov", "col": 2, "type": "backend", "label": "差异化数据增广", "sublabel": "augment_v5.py", "tag": "目标 100张/类", "width": 96 },
+    { "id": "cluster", "lane": "ana", "col": 4, "type": "cloud", "label": "语义聚类分析", "sublabel": "CLIP 嵌入 + K-Means", "tag": "发现类内长尾", "width": 96 },
+    { "id": "feedback", "lane": "gov", "col": 5, "type": "database", "label": "互补闭环", "sublabel": "聚类发现 → 定向补充", "width": 96 }
+  ],
+  "edges": [
+    { "from": "raw", "to": "augment", "label": "类间均衡采样", "variant": "emphasis" },
+    { "from": "raw", "to": "cluster", "label": "直接聚类", "variant": "default", "fromSide": "bottom", "toSide": "left", "labelAt": [294, 167] },
+    { "from": "augment", "to": "cluster", "label": "增广后样本充足", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "from": "cluster", "to": "feedback", "label": "长尾定向补充", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "drop" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两步互补策略",
+      "items": [
+        "Step 1 解决「这个类别样本太少」",
+        "Step 2 解决「这个类别里，这种模式太少」",
+        "增广后类内样本充足，聚类才能发现长尾"
+      ]
+    }
+  ]
+}
